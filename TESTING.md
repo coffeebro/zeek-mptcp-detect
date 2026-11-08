@@ -10,6 +10,10 @@ cluster processes communicated over the container's loopback interface.
 | Standalone, attempt notices enabled | PASS | PASS |
 | Standalone, DSS confirmation disabled | PASS | PASS |
 | Manager + logger + two workers, attempt notices enabled | PASS | PASS |
+| zkg installation with staged regression tests | PASS (zkg 3.1.0) | PASS (zkg 3.2.0) |
+| Installed package loaded by name and via `@load packages` | PASS | PASS |
+| Installed package's standalone and two-worker cluster scenarios | PASS | PASS |
+| zkg unload, reload, and removal | PASS | PASS |
 
 Each run exercises 34 generated PCAP scenarios. Assertions check per-flow
 attempt/establishment decisions, evidence, version, notice types and counts,
@@ -45,6 +49,21 @@ Reproduce from this package's directory with installed Zeek:
 ```sh
 python3 tests/run.py --cluster
 ```
+
+For packaging verification, install zkg and run this after committing changes:
+
+```sh
+python3 tests/package.py --cluster
+```
+
+This tests the committed repository via a local Git clone, with a separate zkg
+configuration and no package sources. Installation runs the `test_command`
+against zkg's staged scripts. The suite then exercises the installed scripts,
+including their cluster behavior, and verifies that unloading and removing the
+package work. It does not change the user's normal zkg installation. Add
+`--version v0.1.0` to select the release tag. The private GitHub repository
+requires authenticated Git access when installing from its remote URL; the
+isolated tests deliberately use a local clone and need no network credentials.
 
 Or use the official container (Docker must be available):
 
