@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test zkg installation, loading, regression tests, and removal in isolation.
 
-Run after committing package changes: python3 tests/package.py [--cluster]
+Run after committing package changes: python3 tests/package.py [--cluster] [--version TAG]
 Tests the committed checkout; does not modify the user's zkg configuration.
 Requires Git, zkg, Zeek, and Python 3. No package-index access is needed.
 """
@@ -20,6 +20,7 @@ NAME = "zeek-mptcp-detect"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cluster", action="store_true")
+    parser.add_argument("--version", help="Install this tag, branch, or commit via zkg")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     zkg = shutil.which("zkg")
@@ -59,7 +60,8 @@ bin_dir = {out / 'bin'}
                     'eval "$("$1" --configfile "$2" env)"; shift 2; exec "$@"',
                     "package-test", zkg, config, *cmd], expected)
 
-    install_output = run([*zkg_cmd, "install", "--force", source])
+    version_args = ["--version", args.version] if args.version else []
+    install_output = run([*zkg_cmd, "install", "--force", *version_args, source])
     (out / "install.txt").write_text(install_output)
     print(install_output.strip(), flush=True)
     installed_dir = out / "scripts" / "packages" / NAME
@@ -81,7 +83,7 @@ bin_dir = {out / 'bin'}
         command.append("--cluster")
     print(installed(command).strip(), flush=True)
 
-    run([*zkg_cmd, "unload", NAME])
+    run([*zkg_cmd, "unload", "--force", NAME])
     load_check = ('@ifdef ( MPTCP::Established )\nprint "loaded";\n'
                   '@else\nprint "unloaded";\n@endif\n')
     assert installed([zeek, "packages", "-e", load_check]).strip() == "unloaded"

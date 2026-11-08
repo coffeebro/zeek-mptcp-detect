@@ -258,6 +258,17 @@ Use `ZEEK=/path/to/zeek` for another executable. Test artifacts are kept in a
 reported temporary directory; `--output /path/to/new-directory` selects a
 destination. See `TESTING.md` for the tested versions and scenario coverage.
 
+To check the full zkg lifecycle after committing changes:
+
+```sh
+python3 tests/package.py --cluster
+```
+
+This clones the committed repository, installs it using an isolated zkg
+configuration, tests both loading methods and the installed detector, and
+checks unload, reload, and removal. It leaves your normal zkg installation
+untouched. Add `--version v0.1.0` to test the tagged release explicitly.
+
 ## References
 
 - [RFC 8684: MPTCP v1](https://www.rfc-editor.org/rfc/rfc8684.html)
