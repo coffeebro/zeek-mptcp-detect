@@ -84,9 +84,8 @@ bin_dir = {out / 'bin'}
     print(installed(command).strip(), flush=True)
 
     run([*zkg_cmd, "unload", "--force", NAME])
-    load_check = ('@ifdef ( MPTCP::Established )\nprint "loaded";\n'
-                  '@else\nprint "unloaded";\n@endif\n')
-    assert installed([zeek, "packages", "-e", load_check]).strip() == "unloaded"
+    load_check = 'print lookup_ID("MPTCP::Established");'
+    assert installed([zeek, "packages", "-e", load_check]).strip() == "<unknown id>"
     # An unloaded package remains explicitly loadable.
     assert "MPTCP::Established" in installed([zeek, NAME, "-e", assertion])
     run([*zkg_cmd, "load", NAME])
