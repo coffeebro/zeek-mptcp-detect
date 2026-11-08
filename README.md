@@ -60,13 +60,6 @@ already configured. Install the tagged release:
 zkg install --version v0.1.0 https://github.com/coffeebro/zeek-mptcp-detect
 ```
 
-The repository is private, so Git must be authenticated as an account with
-access. If you use GitHub SSH authentication, use this URL instead:
-
-```sh
-zkg install --version v0.1.0 git@github.com:coffeebro/zeek-mptcp-detect.git
-```
-
 zkg runs the regression tests and marks the installed package as loaded. Add
 this to `local.zeek` to load packages enabled by zkg:
 

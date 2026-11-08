@@ -61,9 +61,8 @@ configuration and no package sources. Installation runs the `test_command`
 against zkg's staged scripts. The suite then exercises the installed scripts,
 including their cluster behavior, and verifies that unloading and removing the
 package work. It does not change the user's normal zkg installation. Add
-`--version v0.1.0` to select the release tag. The private GitHub repository
-requires authenticated Git access when installing from its remote URL; the
-isolated tests deliberately use a local clone and need no network credentials.
+`--version v0.1.0` to select the release tag. The isolated tests use a local
+clone and need no network credentials.
 
 Or use the official container (Docker must be available):
 
