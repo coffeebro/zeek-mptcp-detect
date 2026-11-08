@@ -1,0 +1,6 @@
+[package]
+description = Detect attempted and established MPTCP in standalone Zeek and clusters
+tags = mptcp tcp detection notice cluster
+script_dir = scripts
+depends = zeek >=8.0.0
+test_command = python3 tests/run.py
