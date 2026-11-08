@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate checksummed PCAPs and test real Zeek, without Python dependencies.
 
-Run: python3 tests/run.py [--cluster] [--output DIRECTORY]
+Run: python3 tests/run.py [--cluster] [--load PACKAGE] [--output DIRECTORY]
 ZEEK may identify a non-default Zeek executable. Cluster tests use localhost.
 """
 import argparse
@@ -217,7 +217,7 @@ def check(logdir, cases, attempts, dss_enabled=True, cluster=False):
     assert not observed and not notices, (observed, notices)
 
 
-def run_standalone(out, cases):
+def run_standalone(out, cases, load_script):
     pcap = out / "traffic.pcap"
     write_pcap(pcap, [p for case in cases for p in case["packets"]])
     for mode, attempts, dss_enabled in [("default", False, True), ("attempt_notices", True, True),
@@ -229,7 +229,7 @@ def run_standalone(out, cases):
                           f"redef MPTCP::notice_on_attempt = {'T' if attempts else 'F'};\n" +
                           f"redef MPTCP::confirm_from_bidirectional_dss = {'T' if dss_enabled else 'F'};\n")
         # Intentionally no -C: fixtures carry valid IP and TCP checksums.
-        result = subprocess.run([ZEEK, "-r", str(pcap), str(ROOT / "scripts"), str(config)],
+        result = subprocess.run([ZEEK, "-r", str(pcap), load_script, str(config)],
                                 cwd=dest, text=True, capture_output=True, timeout=30)
         (dest / "stderr").write_text(result.stderr)
         assert result.returncode == 0 and not result.stderr, result.stderr
@@ -256,7 +256,7 @@ def free_ports(count):
             s.close()
 
 
-def run_cluster(out, cases):
+def run_cluster(out, cases, load_script):
     dest = out / "cluster"
     dest.mkdir()
     names = ["logger", "manager", "worker-1", "worker-2"]
@@ -273,7 +273,7 @@ def run_cluster(out, cases):
     # Broker is the default in Zeek 8; explicit backend selection was added in 9.
     backend_load = "@load frameworks/cluster/backend/broker\n" if major >= 9 else ""
     driver.write_text(f'''{backend_load}\
-@load {ROOT / 'scripts'}
+@load {load_script}
 @load frameworks/cluster/experimental
 redef Cluster::manager_is_logger = F;
 redef LogAscii::use_json = T;
@@ -296,7 +296,8 @@ event Cluster::Experimental::cluster_started() {{
         write_pcap(dest / f"worker-{i+1}.pcap", [p for c in cases[i::2] for p in c["packets"]])
     zeek_config = str(Path(shutil.which(ZEEK)).with_name("zeek-config"))
     default_path = subprocess.check_output([zeek_config, "--zeekpath"], text=True).strip()
-    env = dict(os.environ, ZEEKPATH=str(dest) + ":" + default_path)
+    # Preserve zkg's staging/install paths when testing a packaged installation.
+    env = dict(os.environ, ZEEKPATH=str(dest) + ":" + os.environ.get("ZEEKPATH", default_path))
     procs = []
     handles = []
     try:
@@ -358,6 +359,8 @@ event Cluster::Experimental::cluster_started() {{
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cluster", action="store_true")
+    parser.add_argument("--load", default=str(ROOT / "scripts"),
+                        help="Zeek package name or script path; defaults to this checkout's scripts")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     assert shutil.which(ZEEK), f"Zeek not found: {ZEEK}"
@@ -366,9 +369,9 @@ def main():
     print(subprocess.check_output([ZEEK, "--version"], text=True).strip(), flush=True)
     print(f"Test artifacts: {out}", flush=True)
     cases = fixtures()
-    run_standalone(out, cases)
+    run_standalone(out, cases, args.load)
     if args.cluster:
-        run_cluster(out, cases)
+        run_cluster(out, cases, args.load)
 
 
 if __name__ == "__main__":

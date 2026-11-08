@@ -1,4 +1,4 @@
-# MPTCP detection for Zeek
+# zeek-mptcp-detect
 
 Detect attempted and established Multipath TCP on standalone Zeek or a Zeek
 cluster. Supports MPTCP v0 (RFC 6824) and v1 (RFC 8684). Requires Zeek 8.0 or
@@ -50,6 +50,60 @@ leave an idle, successfully joined backup subflow unconfirmed.
 
 ## Installation
 
+### With zkg (recommended)
+
+Requires Zeek 8.0+, zkg 2.12+, Git, and Python 3 for the installation tests.
+Configure zkg for your Zeek installation with `zkg autoconfig` if it is not
+already configured. Install the tagged release:
+
+```sh
+zkg install --version v0.1.0 https://github.com/coffeebro/zeek-mptcp-detect
+```
+
+The repository is private, so Git must be authenticated as an account with
+access. If you use GitHub SSH authentication, use this URL instead:
+
+```sh
+zkg install --version v0.1.0 git@github.com:coffeebro/zeek-mptcp-detect.git
+```
+
+zkg runs the regression tests and marks the installed package as loaded. Add
+this to `local.zeek` to load packages enabled by zkg:
+
+```zeek
+@load packages
+
+# Optional: also issue notices for connection attempts; defaults to F.
+redef MPTCP::notice_on_attempt = T;
+```
+
+Alternatively, load just this package with `@load zeek-mptcp-detect`. Success
+notices are enabled in either case. Keep your `redef` settings in local policy,
+so package upgrades do not overwrite them.
+
+For a standalone capture using the installed package:
+
+```sh
+zeek -r capture.pcap zeek-mptcp-detect
+```
+
+For a user-scoped or custom zkg installation, first run `eval "$(zkg env)"` in
+the shell where you will run Zeek. For ZeekControl, configure its `SitePolicyPath`
+to include the directory reported by `zkg config script_dir` if it is not
+already on the policy search path.
+
+To track future releases rather than explicitly select a version:
+
+```sh
+zkg install https://github.com/coffeebro/zeek-mptcp-detect
+```
+
+This direct Git URL works without a listing in the public Zeek package index.
+The package name for `zkg list`, `zkg load`, `zkg unload`, and `zkg remove` is
+`zeek-mptcp-detect`.
+
+### Manual installation
+
 Copy the contents of `scripts/` into an `mptcp/` directory on Zeek's script
 search path, for example `<zeek-prefix>/share/zeek/site/mptcp/`:
 
@@ -75,26 +129,26 @@ Establishment notices are always requested when the package detects success.
 The notice types are `MPTCP::Attempted` and `MPTCP::Established`.
 
 With ZeekControl, distribute the same package and configuration to all nodes,
-then use the normal `zeekctl check` and `zeekctl deploy` workflow. The package
-includes `zkg.meta` for use if you place it in a Git repository managed by zkg.
+then use the normal `zeekctl check` and `zeekctl deploy` workflow. This applies
+to both manual and zkg installations.
 
 For a standalone offline run, no installation is necessary:
 
 ```sh
-zeek -r capture.pcap /absolute/path/to/zeek-mptcp/scripts
+zeek -r capture.pcap /absolute/path/to/zeek-mptcp-detect/scripts
 ```
 
 To enable attempt notices in that run:
 
 ```sh
-zeek -r capture.pcap /absolute/path/to/zeek-mptcp/scripts \
+zeek -r capture.pcap /absolute/path/to/zeek-mptcp-detect/scripts \
     'MPTCP::notice_on_attempt=T'
 ```
 
 For standalone live monitoring, load it with the rest of your usual policy:
 
 ```sh
-zeek -i eth0 local /absolute/path/to/zeek-mptcp/scripts
+zeek -i eth0 local /absolute/path/to/zeek-mptcp-detect/scripts
 ```
 
 ## Standalone and cluster operation
@@ -185,6 +239,14 @@ python3 tests/run.py
 python3 tests/run.py --cluster
 ```
 
+`zkg test zeek-mptcp-detect` runs these standalone scenarios against the
+installed scripts in zkg's isolated test stage. To run the suite against a
+package already installed in your environment, including the cluster test:
+
+```sh
+python3 tests/run.py --load zeek-mptcp-detect --cluster
+```
+
 `--cluster` also starts a manager, logger, and two workers on ephemeral loopback
 ports, assigns complete flows to each worker, and verifies the centralized
 logs. Temporary test processes are shut down on success or failure. The test
@@ -203,3 +265,5 @@ destination. See `TESTING.md` for the tested versions and scenario coverage.
 - [Zeek TCP events](https://docs.zeek.org/en/current/scripts/base/bif/plugins/Zeek_TCP.events.bif.zeek.html)
 - [Zeek Notice cluster considerations](https://docs.zeek.org/en/current/frameworks/notice.html#cluster-considerations)
 - [Zeek cluster framework](https://docs.zeek.org/en/current/frameworks/cluster.html)
+- [Creating zkg packages](https://docs.zeek.org/projects/package-manager/en/stable/package.html)
+- [zkg installation and configuration](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)
